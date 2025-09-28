@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFA Job Shadowing Platform - Participants</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="CFA Logo" class="h-10 w-auto mr-3">
+                    <h4 class="text-lg font-semibold text-gray-900">CFA Job Shadowing Platform</h4>
+                </div>
+                <div>
+                    <a href="{{ url_for('home') }}" class="bg-white hover:bg-purple-50 text-purple-600 border border-purple-600 px-4 py-2 rounded-md text-sm font-medium transition duration-200">Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Participants for {{ school_name }}</h2>
+
+        {% if school_details %}
+        <div class="bg-gray-50 p-4 rounded-md mb-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">School Details</h3>
+            <p class="text-sm text-gray-600"><strong>Address:</strong> {{ school_details.address_line1 }}, {{ school_details.city }}</p>
+            <p class="text-sm text-gray-600"><strong>Contact Person:</strong> {{ school_details.contact_person }}</p>
+            <p class="text-sm text-gray-600"><strong>Phone:</strong> {{ school_details.contact_phone }}</p>
+            <p class="text-sm text-gray-600"><strong>Email:</strong> {{ school_details.contact_email }}</p>
+        </div>
+        {% endif %}
+
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Surname</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Grade</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subjects</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Indemnity Form</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ row.name }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text

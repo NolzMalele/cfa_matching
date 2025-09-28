@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CFA Job Shadowing Platform - Active Matches</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+    <header class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="CFA Logo" class="h-10 w-auto mr-3">
+                    <h4 class="text-lg font-semibold text-gray-900">CFA Job Shadowing Platform</h4>
+                </div>
+                <div>
+                    <a href="{{ url_for('logout') }}" class="bg-white hover:bg-purple-50 text-purple-600 border border-purple-600 px-4 py-2 rounded-md text-sm font-medium transition duration-200">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Active Matches</h2>
+        <div class="mb-6">
+            <form method="post" class="inline">
+                <button name="refresh" class="bg-white hover:bg-purple-50 text-purple-600 border border-purple-600 px-4 py-2 rounded-md mr-2 transition duration-200">Refresh Data</button>
+            </form>
+            <a href="{{ url_for('export') }}" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md transition duration-200">Export to CSV</a>
+        </div>
+
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Contact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Contact Number</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School Location</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Capacity</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Initiative Day</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Match Percent</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Matched</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for row in data %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><a href="/participants/{{ row.schoolId }}" class="text-purple-600 hover:text-purple-900">{{ row.schoolName }}</a></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.schoolContact }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.schoolContactNumber }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.schoolLocation }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><a href="#" class="text-purple-600 hover:text-purple-900" onclick="showCompanyModal({{ loop.index0 }})">{{ row.company }}</a></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.capacity }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.participants }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.initiativeDay }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.matchPercent }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ row.dateMatched }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            <div>
+                {% if has_prev %}
+                <a href="{{ url_for('home', page=page-1) }}" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition duration-200">Previous</a>
+                {% endif %}
+            </div>
+            <div class="text-sm text-gray-700">
+                Page {{ page }}
+            </div>
+            <div>
+                {% if has_next %}
+                <a href="{{ url_for('home', page=page+1) }}" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition duration-200">Next</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- School Modal -->
+    <div id="schoolModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">School Details</h3>
+                    <button onclick="closeSchoolModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500"><strong>Contact Email:</strong> <span id="schoolEmail"></span></p>
+                    <p class="text-sm text-gray-500"><strong>Address:</strong> <span id="schoolAddress"></span></p>
+                    <p class="text-sm text-gray-500"><strong>City:</strong> <span id="schoolCity"></span></p>
+                    <div class="mt-4">
+                        <a id="viewParticipantsLink" href="#" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md text-sm font-medium transition duration-200">View Participants</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Modal -->
+    <div id="companyModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Company Details</h3>
+                    <button onclick="closeCompanyModal()" class="text-gray-400 hover:text-gray-600">&times;</button>
+                </div>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500"><strong>Contact Person:</strong> <span id="companyContact"></span></p>
+                    <p class="text-sm text-gray-500"><strong>Contact Email:</strong> <span id="companyEmail"></span></p>
+                    <p class="text-sm text-gray-500"><strong>Phone:</strong> <span id="companyPhone"></span></p>
+                    <p class="text-sm text-gray-500"><strong>Location:</strong> <span id="companyLocation"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var data = {{ data | tojson }};
+
+        function showSchoolModal(index) {
+            var row = data[index];
+            document.getElementById('schoolEmail').textContent = row.schoolContactEmail;
+            document.getElementById('schoolAddress').textContent = row.schoolAddress;
+            document.getElementById('schoolCity').textContent = row.schoolCity;
+            document.getElementById('viewParticipantsLink').href = '/participants/' + row.schoolId;
+            document.getElementById('schoolModal').classList.remove('hidden');
+        }
+
+        function showCompanyModal(index) {
+            var row = data[index];
+            document.getElementById('companyContact').textContent = row.companyContactPerson;
+            document.getElementById('companyEmail').textContent = row.companyContactEmail;
+            document.getElementById('companyPhone').textContent = row.companyPhone;
+            document.getElementById('companyLocation').textContent = row.companyLocation;
+            document.getElementById('companyModal').classList.remove('hidden');
+        }
+
+        function closeSchoolModal() {
+            document.getElementById('schoolModal').classList.add('hidden');
+        }
+
+        function closeCompanyModal() {
+            document.getElementById('companyModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('schoolModal')) {
+                document.getElementById('schoolModal').classList.add('hidden');
+            }
+            if (event.target == document.getElementById('companyModal')) {
+                document.getElementById('companyModal').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
