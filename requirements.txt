@@ -1,4 +1,1 @@
-Flask==2.3.3
-pandas==2.0.3
-supabase==2.3.0
-requests==2.31.0
+aiohttp @ file:///opt/concourse/worker/volumes/live/ba25266

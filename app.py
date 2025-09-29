@@ -197,4 +197,20 @@ def participants(school_id):
         }
     else:
         school_details = {}
-    return render_template('pa
+    return render_template('participants.html', data=data, school_name=school_name, school_details=school_details)
+
+@app.route('/download/<path:file_path>')
+def download(file_path):
+    if not session.get('logged_in'):
+        return redirect(url_for('login'))
+    client = get_supabase_client()
+    signed_url = client.storage.from_('indemnity-forms').create_signed_url(file_path, 3600)['signedURL']
+    return redirect(signed_url)
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=False)
