@@ -164,11 +164,11 @@ def home():
 def export():
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    active_matches = pd.read_json(session['active_matches'])
+    active_matches = pd.read_json(io.StringIO(session['active_matches']))
     output = io.StringIO()
     active_matches.to_csv(output, index=False)
     output.seek(0)
-    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, attachment_filename='active_matches.csv')
+    return send_file(io.BytesIO(output.getvalue().encode()), mimetype='text/csv', as_attachment=True, download_name='active_matches.csv')
 
 @app.route('/participants/<school_id>')
 def participants(school_id):
@@ -219,7 +219,7 @@ def download(file_path):
     response = requests.get(download_url, headers=headers)
     if response.status_code == 200:
         filename = file_path.split('/')[-1]
-        return send_file(io.BytesIO(response.content), mimetype='application/pdf', as_attachment=True, attachment_filename=filename)
+        return send_file(io.BytesIO(response.content), mimetype='application/pdf', as_attachment=True, download_name=filename)
     else:
         return "File not found", 404
 
@@ -228,3 +228,7 @@ def download(file_path):
 @app.route('/logout')
 def logout():
     session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True)
