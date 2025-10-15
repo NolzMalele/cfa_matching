@@ -1,26 +1,32 @@
 from flask import Flask, render_template, request, session, redirect, url_for, send_file
+from flask_session import Session
 import pandas as pd
-from supabase import create_client, Client
 import io
 import requests
+import os
 
 app = Flask(__name__)
 app.secret_key = 'shadow_path_secret_key_2024'
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
 
 # Supabase connection
-url = "https://xtowrjjmindefwzeulzd.supabase.co"
+base_url = "https://xtowrjjmindefwzeulzd.supabase.co"
 service_role_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0b3dyamptaW5kZWZ3emV1bHpkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTg3NzY1OSwiZXhwIjoyMDY3NDUzNjU5fQ.3EyUZ4yhefV1yEDDDZuic_SslMFOJyBCo5aFj9bW0EE"
 
-def get_supabase_client():
-    return create_client(url, service_role_key)
+headers = {'Authorization': f'Bearer {service_role_key}', 'apikey': service_role_key}
 
 def generate_active_matches():
     try:
-        client = get_supabase_client()
-        matches = client.table('school_company_matches').select('school_id', 'company_id', 'match_percentage', 'created_at').execute().data
-        profiles = client.table('profiles').select('id', 'email').execute().data
-        schools = client.table('schools').select('id', 'name', 'contact_person', 'contact_phone', 'province', 'country', 'contact_email', 'address_line1', 'city', 'num_girls', 'initiative_day').execute().data
-        companies = client.table('companies').select('id', 'name', 'capacity', 'contact_person', 'contact_email', 'phone', 'location').execute().data
+        matches_url = f"{base_url}/rest/v1/school_company_matches?select=school_id,company_id,match_percentage,created_at"
+        matches_response = requests.get(matches_url, headers=headers)
+        matches = matches_response.json()
+        profiles_url = f"{base_url}/rest/v1/profiles?select=id,email"
+        profiles = requests.get(profiles_url, headers=headers).json()
+        schools_url = f"{base_url}/rest/v1/schools?select=id,name,contact_person,contact_phone,province,country,contact_email,address_line1,city,num_girls,initiative_day"
+        schools = requests.get(schools_url, headers=headers).json()
+        companies_url = f"{base_url}/rest/v1/companies?select=id,name,capacity,contact_person,contact_email,phone,location"
+        companies = requests.get(companies_url, headers=headers).json()
 
         matches_df = pd.DataFrame(matches)
         profiles_df = pd.DataFrame(profiles)
@@ -111,10 +117,8 @@ def generate_active_matches():
             'companyPhone',
             'companyLocation'
         ]
-        print("Fetched active_matches shape:", active_matches.shape)
         return active_matches
     except Exception as e:
-        print("Error in generate_active_matches:", e)
         return pd.DataFrame()
 
 @app.route('/', methods=['GET', 'POST'])
@@ -141,8 +145,11 @@ def home():
             active_matches = generate_active_matches()
             session['active_matches'] = active_matches.to_json()
         else:
-            active_matches = pd.read_json(session['active_matches'])
+            active_matches = pd.read_json(io.StringIO(session['active_matches']))
 
+    school_filter = request.args.get('school', '')
+    if school_filter:
+        active_matches = active_matches[active_matches['schoolName'].str.contains(school_filter, case=False)]
     page = int(request.args.get('page', 1))
     per_page = 10
     total = len(active_matches)
@@ -151,7 +158,7 @@ def home():
     data = active_matches.iloc[start:end].to_dict('records')
     has_next = end < total
     has_prev = page > 1
-    return render_template('home.html', data=data, page=page, has_next=has_next, has_prev=has_prev)
+    return render_template('home.html', data=data, page=page, has_next=has_next, has_prev=has_prev, school_filter=school_filter)
 
 @app.route('/export')
 def export():
@@ -167,18 +174,23 @@ def export():
 def participants(school_id):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    client = get_supabase_client()
     # Get email from profiles using school_id (which is profile.id)
-    profile_data = client.table('profiles').select('email').filter('id', 'eq', school_id).execute().data
+    profile_url = f"{base_url}/rest/v1/profiles?select=email&id=eq.{school_id}"
+    profile_response = requests.get(profile_url, headers=headers)
+    profile_data = profile_response.json()
     if profile_data:
         email = profile_data[0]['email']
         # Get school record using email
-        school_data = client.table('schools').select('id', 'name', 'address_line1', 'city', 'contact_person', 'contact_phone', 'contact_email').filter('contact_email', 'eq', email).execute().data
+        school_url = f"{base_url}/rest/v1/schools?select=id,name,address_line1,city,contact_person,contact_phone,contact_email&contact_email=eq.{email}"
+        school_response = requests.get(school_url, headers=headers)
+        school_data = school_response.json()
         if school_data:
             school_name = school_data[0]['name']
             school_id_real = school_data[0]['id']
             # Get learners using real school_id
-            learners = client.table('learners').select('name', 'surname', 'grade', 'subjects', 'indemnity_file_path').filter('school_id', 'eq', school_id_real).execute().data
+            learners_url = f"{base_url}/rest/v1/learners?select=name,surname,grade,subjects,indemnity_file_path&school_id=eq.{school_id_real}"
+            learners_response = requests.get(learners_url, headers=headers)
+            learners = learners_response.json()
         else:
             school_name = 'Unknown School'
             learners = []
@@ -203,14 +215,16 @@ def participants(school_id):
 def download(file_path):
     if not session.get('logged_in'):
         return redirect(url_for('login'))
-    client = get_supabase_client()
-    signed_url = client.storage.from_('indemnity-forms').create_signed_url(file_path, 3600)['signedURL']
-    return redirect(signed_url)
+    download_url = f"{base_url}/storage/v1/object/indemnity-forms/{file_path}"
+    response = requests.get(download_url, headers=headers)
+    if response.status_code == 200:
+        filename = file_path.split('/')[-1]
+        return send_file(io.BytesIO(response.content), mimetype='application/pdf', as_attachment=True, attachment_filename=filename)
+    else:
+        return "File not found", 404
+
+
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
-
-if __name__ == '__main__':
-    app.run(debug=False)
